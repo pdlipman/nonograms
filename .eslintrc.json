@@ -1,0 +1,18 @@
+{
+  "extends": "airbnb",
+  "globals": {
+    "document": true,
+    "window": true
+  },
+  "rules": {
+    "indent": [2, 4, { "SwitchCase": 1 }],
+    "no-param-reassign": [2, {
+      "props": false
+    }],
+    "no-plusplus": "off"
+  },
+  "parserOptions": {
+    "ecmaVersion": 6,
+    "sourceType": "module"
+  }
+}

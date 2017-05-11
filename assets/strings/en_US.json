@@ -1,0 +1,17 @@
+{
+  "test": {
+    "hello": "world"
+  },
+  "mainMenu": {
+    "title": "Nonogram Knights",
+    "start": "Start"
+  },
+  "game": {
+    "title": "Nonogram Knights"
+  },
+  "picrossLevel": {
+    "score": "Score",
+    "winningScore": "Winning Score"
+
+  }
+}
