@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 /* eslint-enable */
 
 export default class Lighting {
-    constructor({game, walls}) {
+    constructor({ game, walls }) {
         this.game = game;
         this.walls = walls;
         this.create();
@@ -49,100 +49,114 @@ export default class Lighting {
         let points = [];
         let ray = null;
         let intersect = null;
-        this.walls.forEach((wall) => {
+        const currWalls = this.walls;
+        currWalls.forEach((wall) => {
             // Create a ray from the light through each corner out to the edge of the stage.
             // This array defines points just inside of each corner to make sure we hit each one.
             // It also defines points just outside of each corner so we can see to the stage edges.
+            const wallX1 = wall.x;
+            const wallX2 = wall.x + wall.width;
+            const wallY1 = wall.y;
+            const wallY2 = wall.y + wall.height;
             const corners = [
-                new Phaser.Point(wall.x + 0.1, wall.y + 0.1),
-                new Phaser.Point(wall.x - 0.1, wall.y - 0.1),
+                new Phaser.Point(wallX1 + 0.1, wallY1 + 0.1),
+                new Phaser.Point(wallX1 - 0.1, wallY1 - 0.1),
 
-                new Phaser.Point((wall.x + wall.width) - 0.1, wall.y + 0.1),
-                new Phaser.Point((wall.x + wall.width) + 0.1, wall.y - 0.1),
+                new Phaser.Point((wallX2) - 0.1, wallY1 + 0.1),
+                new Phaser.Point((wallX2) + 0.1, wallY1 - 0.1),
 
-                new Phaser.Point((wall.x + wall.width) - 0.1, (wall.y + wall.height) - 0.1),
-                new Phaser.Point((wall.x + wall.width) + 0.1, (wall.y + wall.height) + 0.1),
+                new Phaser.Point((wallX2) - 0.1, (wallY2) - 0.1),
+                new Phaser.Point((wallX2) + 0.1, (wallY2) + 0.1),
 
-                new Phaser.Point(wall.x + 0.1, (wall.y + wall.height) - 0.1),
-                new Phaser.Point(wall.x - 0.1, (wall.y + wall.height) + 0.1),
+                new Phaser.Point(wallX1 + 0.1, (wallY2) - 0.1),
+                new Phaser.Point(wallX1 - 0.1, (wallY2) + 0.1),
             ];
 
-            // Calculate rays through each point to the edge of the stage
-            for (let i = 0; i < corners.length; i++) {
-                const c = corners[i];
+            if ((
+                    (x1 < wallX1 && wallX1 < x2)
+                    || (x1 < wallX2 && wallX2 < x2)
+                )
+                && (
+                    (y1 < wallY1 && wallY1 < y2)
+                    || (y1 < wallY2 && wallY2 < y2)
+                )) {
+                // Calculate rays through each point to the edge of the stage
+                for (let i = 0; i < corners.length; i++) {
+                    const c = corners[i];
 
-                // Here comes the linear algebra.
-                // The equation for a line is y = slope * x + b
-                // b is where the line crosses the left edge of the stage
-                const slope = (c.y - this.light.y) / (c.x - this.light.x);
-                const b = this.light.y - (slope * this.light.x);
+                    // Here comes the linear algebra.
+                    // The equation for a line is y = slope * x + b
+                    // b is where the line crosses the left edge of the stage
+                    const slope = (c.y - this.light.y) / (c.x - this.light.x);
+                    const b = this.light.y - (slope * this.light.x);
 
-                let end = null;
+                    let end = null;
 
-                if (c.x === this.light.x) {
-                    // Vertical lines are a special case
-                    if (c.y <= this.light.y) {
-                        end = new Phaser.Point(this.light.x, y1);
+                    if (c.x === this.light.x) {
+                        // Vertical lines are a special case
+                        if (c.y <= this.light.y) {
+                            end = new Phaser.Point(this.light.x, y1);
+                        } else {
+                            end = new Phaser.Point(this.light.x, y2);
+                        }
+                    } else if (c.y === this.light.y) {
+                        // Horizontal lines are a special case
+                        if (c.x <= this.light.x) {
+                            end = new Phaser.Point(x1, this.light.y);
+                        } else {
+                            end = new Phaser.Point(x2, this.light.y);
+                        }
                     } else {
-                        end = new Phaser.Point(this.light.x, y2);
+                        // Find the point where the line crosses the stage edge
+                        const left = new Phaser.Point(0, b);
+                        const right = new Phaser.Point(
+                            this.game.world.width,
+                            (slope * this.game.world.width) + b);
+                        const top = new Phaser.Point(-b / slope, 0);
+                        const bottom = new Phaser.Point(
+                            (this.game.world.height - b) / slope,
+                            this.game.world.height);
+
+                        // Get the actual intersection point
+                        if (c.y <= this.light.y && c.x >= this.light.x) {
+                            if (top.x >= 0 && top.x <= this.game.width) {
+                                end = top;
+                            } else {
+                                end = right;
+                            }
+                        } else if (c.y <= this.light.y && c.x <= this.light.x) {
+                            if (top.x >= 0 && top.x <= this.game.width) {
+                                end = top;
+                            } else {
+                                end = left;
+                            }
+                        } else if (c.y >= this.light.y && c.x >= this.light.x) {
+                            if (bottom.x >= 0 && bottom.x <= this.game.width) {
+                                end = bottom;
+                            } else {
+                                end = right;
+                            }
+                        } else if (c.y >= this.light.y && c.x <= this.light.x) {
+                            if (bottom.x >= 0 && bottom.x <= this.game.width) {
+                                end = bottom;
+                            } else {
+                                end = left;
+                            }
+                        }
                     }
-                } else if (c.y === this.light.y) {
-                    // Horizontal lines are a special case
-                    if (c.x <= this.light.x) {
-                        end = new Phaser.Point(x1, this.light.y);
+
+                    // Create a ray
+                    ray = new Phaser.Line(this.light.x, this.light.y, end.x, end.y);
+
+                    // Check if the ray intersected the wall
+                    intersect = this.getWallIntersection(ray);
+                    if (intersect) {
+                        // This is the front edge of the light blocking object
+                        points.push(intersect);
                     } else {
-                        end = new Phaser.Point(x2, this.light.y);
+                        // Nothing blocked the ray
+                        points.push(ray.end);
                     }
-                } else {
-                    // Find the point where the line crosses the stage edge
-                    const left = new Phaser.Point(0, b);
-                    const right = new Phaser.Point(
-                        this.game.world.width,
-                        (slope * this.game.world.width) + b);
-                    const top = new Phaser.Point(-b / slope, 0);
-                    const bottom = new Phaser.Point(
-                        (this.game.world.height - b) / slope,
-                        this.game.world.height);
-
-                    // Get the actual intersection point
-                    if (c.y <= this.light.y && c.x >= this.light.x) {
-                        if (top.x >= 0 && top.x <= this.game.width) {
-                            end = top;
-                        } else {
-                            end = right;
-                        }
-                    } else if (c.y <= this.light.y && c.x <= this.light.x) {
-                        if (top.x >= 0 && top.x <= this.game.width) {
-                            end = top;
-                        } else {
-                            end = left;
-                        }
-                    } else if (c.y >= this.light.y && c.x >= this.light.x) {
-                        if (bottom.x >= 0 && bottom.x <= this.game.width) {
-                            end = bottom;
-                        } else {
-                            end = right;
-                        }
-                    } else if (c.y >= this.light.y && c.x <= this.light.x) {
-                        if (bottom.x >= 0 && bottom.x <= this.game.width) {
-                            end = bottom;
-                        } else {
-                            end = left;
-                        }
-                    }
-                }
-
-                // Create a ray
-                ray = new Phaser.Line(this.light.x, this.light.y, end.x, end.y);
-
-                // Check if the ray intersected the wall
-                intersect = this.getWallIntersection(ray);
-                if (intersect) {
-                    // This is the front edge of the light blocking object
-                    points.push(intersect);
-                } else {
-                    // Nothing blocked the ray
-                    points.push(ray.end);
                 }
             }
         });
