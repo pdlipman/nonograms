@@ -10,7 +10,9 @@ export default class Lighting {
     }
 
     create() {
-        this.light = this.game.add.sprite(this.game.world.width / 2, this.game.world.height / 2, 'light');
+        this.light = this.game.add.sprite(this.game.world.width / 2, this.game.world.height / 2, 'block');
+        this.light.renderable = false;
+
         this.light.anchor.setTo(0.5, 0.5);
         this.bitmap = this.game.add.bitmapData(this.game.world.width, this.game.world.height);
 
@@ -25,18 +27,61 @@ export default class Lighting {
         this.rayBitmap = this.game.add.bitmapData(this.game.world.width, this.game.world.height);
         this.rayBitmapImage = this.game.add.image(0, 0, this.rayBitmap);
         this.rayBitmapImage.visible = false;
+
+        this.LIGHT_RADIUS = 150;
+        this.shadowTexture =
+            this.game.add.bitmapData(this.game.world.width, this.game.world.height);
+        const lightSprite = this.game.add.image(0, 0, this.shadowTexture);
+
+        // Set the blend mode to MULTIPLY. This will darken the colors of
+        // everything below this sprite.
+        lightSprite.blendMode = Phaser.blendModes.MULTIPLY;
     }
 
-    update() {
+    updateShadowTexture() {
+        // This function updates the shadow texture (this.shadowTexture).
+        // First, it fills the entire texture with a dark shadow color.
+        // Then it draws a white circle centered on the pointer position.
+        // Because the texture is drawn to the screen using the MULTIPLY
+        // blend mode, the dark areas of the texture make all of the colors
+        // underneath it darker, while the white area is unaffected.
+
+        const radius = this.LIGHT_RADIUS + this.game.rnd.integerInRange(1, 5);
+
+        // Draw shadow
+        this.shadowTexture.context.fillStyle = 'rgb(240, 240, 240)';
+        this.shadowTexture.context.fillRect(0, 0, this.game.world.width, this.game.world.height);
+
+        // Draw circle of light with a soft edge
+        // Draw circle of light
+        this.shadowTexture.context.beginPath();
+        this.shadowTexture.context.fillStyle = this.getGradient(radius);
+        this.shadowTexture.context.arc(
+            this.lightSourceX,
+            this.lightSourceY,
+            radius,
+            0,
+            Math.PI * 2);
+        this.shadowTexture.context.fill();
+
+        // This just tells the engine it should update the texture cache
+        this.shadowTexture.dirty = true;
+    }
+
+
+    update(lightSource) {
+        this.lightSourceX = lightSource.x;
+        this.lightSourceY = lightSource.y;
+
         const x1 = this.game.camera.view.x;
         const y1 = this.game.camera.view.y;
         const x2 = x1 + this.game.camera.view.width;
         const y2 = y1 + this.game.camera.view.height;
 
-        this.light.x = this.game.input.mousePointer.worldX;
-        this.light.y = this.game.input.mousePointer.worldY;
+        this.light.x = this.lightSourceX;
+        this.light.y = this.lightSourceY;
 
-        this.bitmap.context.fillStyle = 'rgb(100, 100, 100)';
+        this.bitmap.context.fillStyle = 'rgb(200, 200, 200)';
         this.bitmap.context.fillRect(x1, y1, x2, y2);
 
 
@@ -58,28 +103,26 @@ export default class Lighting {
             const wallX2 = wall.x + wall.width;
             const wallY1 = wall.y;
             const wallY2 = wall.y + wall.height;
-            const corners = [
-                new Phaser.Point(wallX1 + 0.1, wallY1 + 0.1),
-                new Phaser.Point(wallX1 - 0.1, wallY1 - 0.1),
 
-                new Phaser.Point((wallX2) - 0.1, wallY1 + 0.1),
-                new Phaser.Point((wallX2) + 0.1, wallY1 - 0.1),
+            if (wallX1 < x2 &&
+                wallX2 > x1 &&
+                wallY1 < y2 &&
+                wallY2 > y1
+            ) {
+                const corners = [
+                    new Phaser.Point(wallX1 + 0.1, wallY1 + 0.1),
+                    new Phaser.Point(wallX1 - 0.1, wallY1 - 0.1),
 
-                new Phaser.Point((wallX2) - 0.1, (wallY2) - 0.1),
-                new Phaser.Point((wallX2) + 0.1, (wallY2) + 0.1),
+                    new Phaser.Point((wallX2) - 0.1, wallY1 + 0.1),
+                    new Phaser.Point((wallX2) + 0.1, wallY1 - 0.1),
 
-                new Phaser.Point(wallX1 + 0.1, (wallY2) - 0.1),
-                new Phaser.Point(wallX1 - 0.1, (wallY2) + 0.1),
-            ];
+                    new Phaser.Point((wallX2) - 0.1, (wallY2) - 0.1),
+                    new Phaser.Point((wallX2) + 0.1, (wallY2) + 0.1),
 
-            if ((
-                    (x1 < wallX1 && wallX1 < x2)
-                    || (x1 < wallX2 && wallX2 < x2)
-                )
-                && (
-                    (y1 < wallY1 && wallY1 < y2)
-                    || (y1 < wallY2 && wallY2 < y2)
-                )) {
+                    new Phaser.Point(wallX1 + 0.1, (wallY2) - 0.1),
+                    new Phaser.Point(wallX1 - 0.1, (wallY2) + 0.1),
+                ];
+
                 // Calculate rays through each point to the edge of the stage
                 for (let i = 0; i < corners.length; i++) {
                     const c = corners[i];
@@ -219,8 +262,9 @@ export default class Lighting {
         // with a bright white color. When multiplied with the background,
         // the white color will allow the full color of the background to
         // shine through.
+
         this.bitmap.context.beginPath();
-        this.bitmap.context.fillStyle = 'rgb(255, 255, 255)';
+        this.bitmap.context.fillStyle = this.getGradient();
         this.bitmap.context.moveTo(points[0].x, points[0].y);
         for (let j = 0; j < points.length; j++) {
             this.bitmap.context.lineTo(points[j].x, points[j].y);
@@ -244,6 +288,7 @@ export default class Lighting {
         // This just tells the engine it should update the texture cache
         this.bitmap.dirty = true;
         this.rayBitmap.dirty = true;
+        this.updateShadowTexture();
     }
 
     getWallIntersection(ray) {
@@ -288,5 +333,22 @@ export default class Lighting {
         } else {
             this.rayBitmapImage.visible = true;
         }
+    }
+
+    getGradient(radius) {
+        // Draw circle of light with a soft edge
+        const radiusValue = radius || this.LIGHT_RADIUS;
+        const gradient = this.shadowTexture.context.createRadialGradient(
+            this.lightSourceX,
+            this.lightSourceY,
+            radiusValue * 0.75,
+            this.lightSourceX,
+            this.lightSourceY,
+            radiusValue);
+
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+
+        return gradient;
     }
 }

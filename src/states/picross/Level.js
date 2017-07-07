@@ -2,7 +2,9 @@
 /* eslint-disable */
 import Phaser from 'phaser';
 /* eslint-enable */
+import config from '../../config';
 import Board from './Board';
+import PlayerProperties from '../entities/player/PlayerProperties';
 
 import {
     defaultTextStyle,
@@ -10,7 +12,11 @@ import {
 } from '../../utils';
 
 export default class Level extends Phaser.State {
-    init() {
+    init(enemyId) {
+        this.enemyId = enemyId;
+        this.game.world.width = config.gameWidth;
+        this.game.world.height = config.gameHeight;
+
         this.answerKeyCsv =
             '1,1,1,1,1\n' +
             '1,0,1,0,1\n' +
@@ -25,8 +31,16 @@ export default class Level extends Phaser.State {
     }
 
     create() {
+
         this.createScoreDisplay();
         this.createWinningScoreDisplay();
+        const crosshair = game.add.sprite(
+            0,
+            0,
+            'crosshair6',
+        );
+        crosshair.anchor.setTo(0.5, 0.5);
+        this.crosshair = crosshair;
     }
 
     render() {
@@ -34,10 +48,31 @@ export default class Level extends Phaser.State {
             this.game.debug.inputInfo(32, 32);
         }
 
-        const tileGroup = this.board.tileGroup.children;
-        const currentScore = tileGroup.filter(tile => tile.clicked && tile.isAnswer).length;
+        const {
+            currentScore
+        } = this;
+
 
         this.score.setText(Level.getScoreText('picrossLevel.score', currentScore));
+    }
+
+    update() {
+        const {
+            crosshair,
+            winningScore,
+        } = this;
+
+        const tileGroup = this.board.tileGroup.children;
+        this.currentScore = tileGroup.filter(tile => tile.clicked && tile.isAnswer).length;
+        crosshair.x = this.game.input.mousePointer.worldX;
+        crosshair.y = this.game.input.mousePointer.worldY;
+
+        console.log('currentScore: ' + this.currentScore);
+        console.log('winningScore: ' + winningScore);
+        if (this.currentScore === winningScore) {
+            PlayerProperties.defeatedEnemies.push(this.enemyId);
+            this.state.start('WorldLevel');
+        }
     }
 
     createScoreDisplay() {

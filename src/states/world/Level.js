@@ -2,6 +2,10 @@
 import Phaser from 'phaser';
 /* eslint-enable */
 import Lighting from './Lighting';
+import Player from '../entities/player/Player';
+import PlayerProperties from '../entities/player/PlayerProperties';
+
+import Enemy from '../entities/Enemy';
 
 export default class Level extends Phaser.State {
     preload() {
@@ -14,48 +18,74 @@ export default class Level extends Phaser.State {
     }
 
     create() {
+        this.game.physics.startSystem(Phaser.Physics.ARCADE);
+        this.createMap();
+
+        const player = new Player(
+            this.game,
+            PlayerProperties.position.x,
+            PlayerProperties.position.y,
+        );
+        this.game.camera.follow(player);
+
+        const testEnemy = new Enemy(
+            this.game,
+            'testEnemy001',
+            400,
+            100,
+            'block',
+        );
+
+        this.player = player;
+        this.testEnemy = testEnemy;
+
+    }
+
+    createMap() {
         const map = this.game.add.tilemap('testLevel');
         map.addTilesetImage('dungeon_sheet', 'tiles');
 
-        const layer = map.createLayer('Collision');
+        map.createLayer('Floor');
+        const collisionLayer = map.createLayer('Collision');
 
-        layer.resizeWorld();
+        map.setCollisionBetween(1, 999, true, collisionLayer);
 
-        this.game.stage.backgroundColor = 0x4488cc;
-        this.light = this.game.add.sprite(this.game.world.width / 2, this.game.world.height / 2, 'light');
-        this.light.anchor.setTo(0.5, 0.5);
+        collisionLayer.resizeWorld();
+        this.collisionLayer = collisionLayer;
+
+        this.game.stage.backgroundColor = 0x000000;
 
         if (map.objects && map.objects.Light) {
             const lightWalls = map.objects.Light;
             this.lighting = new Lighting({ game: this.game, walls: lightWalls });
         }
 
-        this.cursors = this.game.input.keyboard.createCursorKeys();
-    }
-
-    updateControls() {
-        const cursors = this.cursors;
-
-        if (cursors.up.isDown) {
-            this.game.camera.y -= 4;
-        } else if (cursors.down.isDown) {
-            this.game.camera.y += 4;
-        }
-
-        if (cursors.left.isDown) {
-            this.game.camera.x -= 4;
-        } else if (cursors.right.isDown) {
-            this.game.camera.x += 4;
-        }
+        map.createLayer('Main');
     }
 
     update() {
-        this.light.x = this.game.input.mousePointer.worldX;
-        this.light.y = this.game.input.mousePointer.worldY;
+        const {
+            collisionLayer,
+            game,
+            player,
+            testEnemy,
+        } = this;
 
-        this.updateControls();
         if (this.lighting) {
-            this.lighting.update();
+            this.lighting.update(this.player);
         }
+
+        if (game.physics.arcade.overlap(player, testEnemy) && !PlayerProperties.defeatedEnemies.includes(testEnemy.id)) {
+            game.state.start('PicrossLevel', true, false, testEnemy.id);
+        }
+    }
+
+    render() {
+        this.game.debug.inputInfo(32, 32);
+    }
+
+    shutdown() {
+        PlayerProperties.position.x = this.player.x;
+        PlayerProperties.position.y = this.player.y;
     }
 }

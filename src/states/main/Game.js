@@ -27,6 +27,7 @@ export default class Game extends Phaser.State {
         });
 
         this.game.add.existing(this.mushroom);
+        // this.state.start('PicrossLevel');
         this.state.start('WorldLevel');
     }
 
