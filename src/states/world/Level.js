@@ -78,6 +78,8 @@ export default class Level extends Phaser.State {
         if (game.physics.arcade.overlap(player, testEnemy) && !PlayerProperties.defeatedEnemies.includes(testEnemy.id)) {
             game.state.start('PicrossLevel', true, false, testEnemy.id);
         }
+
+        game.physics.arcade.collide(player, collisionLayer);
     }
 
     render() {

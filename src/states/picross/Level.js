@@ -67,8 +67,6 @@ export default class Level extends Phaser.State {
         crosshair.x = this.game.input.mousePointer.worldX;
         crosshair.y = this.game.input.mousePointer.worldY;
 
-        console.log('currentScore: ' + this.currentScore);
-        console.log('winningScore: ' + winningScore);
         if (this.currentScore === winningScore) {
             PlayerProperties.defeatedEnemies.push(this.enemyId);
             this.state.start('WorldLevel');

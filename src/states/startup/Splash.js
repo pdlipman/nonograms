@@ -17,9 +17,8 @@ export default class Splash extends Phaser.State {
         this.load.image('picrossTile', 'assets/images/picross/block.png');
         this.load.image('block', 'assets/images/picross/block.png');
         this.load.image('light', 'assets/images/world/light.png');
-        this.load.image('crosshair0', 'assets/images/world/crosshair0.png');
         this.load.image('crosshair6', 'assets/images/world/crosshair6.png');
-        this.load.image('crosshair8', 'assets/images/world/crosshair8.png');
+        this.load.spritesheet('items', 'assets/images/items/items.png', 16, 16);
     }
 
     create() {

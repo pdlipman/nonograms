@@ -2,16 +2,18 @@
   "test": {
     "hello": "world"
   },
+  "game": {
+    "title": "Nonogram Knights"
+  },
+  "inventoryMenu": {
+    "inventory": "Inventory"
+  },
   "mainMenu": {
     "title": "Nonogram Knights",
     "start": "Start"
   },
-  "game": {
-    "title": "Nonogram Knights"
-  },
   "picrossLevel": {
     "score": "Score",
     "winningScore": "Winning Score"
-
   }
 }
